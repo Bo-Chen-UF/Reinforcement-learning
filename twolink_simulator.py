@@ -1,3 +1,6 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from scipy.integrate import odeint
 import numpy as np
 import matplotlib.pyplot as plt
@@ -5,6 +8,17 @@ plt.style.use('ggplot')
 
 # System Parameters
 p1, p2, p3, fd1, fd2 = 3.473, 0.196, 0.242, 5.3, 1.1
+
+# Define NN
+class Net(nn.Module):
+    def __init__(self):
+        super(Net,self).__init__()
+        self.fc1 = nn.Linear(2,10)
+        self.fc2 = nn.Linear(10,1)
+        
+    def forward(self,x):
+        x1 = torch.sigmoid(self.fc1(x))
+        return torch.sigmoid(self.fc2(x1))
 
 def policy(x):
     if np.abs(x[0]+x[1])>=.1:
@@ -37,6 +51,13 @@ def model(x,t,policy,disturbance):
     x3x4dot = np.linalg.inv(M)@(-(C+D)@[[x[2]],[x[3]]]-S@distrubance(t)+u)
  
     return [x[2],x[3],x3x4dot[0][0],x3x4dot[1][0]]
+
+def Q_approximation(net_x,u):
+    # random seed
+    torch.manual_seed(200)
+    
+    return np.linalg.norm(u) + torch.dot(u,net_x) 
+    
 
 xinit=[0,0,0,0]
 t=np.linspace(0,100,1000)
